@@ -235,7 +235,6 @@ app.get('/photo/:id', function (req, res) { return __awaiter(void 0, void 0, voi
             case 3:
                 originalText = _a.sent();
                 url = 'https://' + originalText + '.ipfs.hub.textile.io';
-                console.log(url);
                 return [4 /*yield*/, axios.get(url).catch(function (err) { res.send('error'); })];
             case 4:
                 resp = _a.sent();
@@ -244,6 +243,6 @@ app.get('/photo/:id', function (req, res) { return __awaiter(void 0, void 0, voi
         }
     });
 }); });
-app.listen(3000, function () {
+app.listen(process.env.PORT || 3000, function () {
     console.log('Example app listening on port 3000!');
 });
