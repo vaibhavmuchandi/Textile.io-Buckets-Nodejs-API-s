@@ -1,5 +1,8 @@
 ;(global as any).WebSocket = require('isomorphic-ws')
-
+import * as firebase from 'firebase/app';
+import "firebase/auth";
+import "firebase/firestore";
+import "firebase/database";
 import { Buckets, Identity, KeyInfo, PushPathResult } from '@textile/hub'
 import {Libp2pCryptoIdentity} from '@textile/threads-core';
 import express = require('express');
@@ -8,11 +11,24 @@ const axios = require('axios')
 const CryptoJS = require('crypto-js')
 const upload = multer({ dest: 'uploads/' });
 const bodyParser = require('body-parser');
-const config = require('../config.js')
+const config = require('../config.js');
+
 
 // Create a new express application instance
 const app: express.Application = express();
 app.use(bodyParser.urlencoded({extended: true}));
+
+const firebaseConfig = {
+    apiKey: config.firebaseAPI,
+    authDomain: config.firebaseauthDomain,
+    databaseURL: config.firebaseDbUrl,
+    projectId: config.firebaseProjectId,
+    storageBucket: config.firebaseStorageBucket,
+    messagingSenderId: config.firebasemsgId,
+    appId: config.firebaseAppId
+  };
+
+firebase.initializeApp(firebaseConfig);
 
 // const identity = async() => {
 //     const lidentity = await Libp2pCryptoIdentity.fromRandom()
@@ -84,26 +100,42 @@ const insertFile = async (file: any) : Promise<PushPathResult> => {
 
 
 app.post('/post', async(req, res) => {
+    async function makeid(length: any) {
+        var result           = '';
+        var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        var charactersLength = characters.length;
+        for ( var i = 0; i < length; i++ ) {
+           result += characters.charAt(Math.floor(Math.random() * charactersLength));
+        }
+        return result;
+     }
     const key = config.libp2pkey
     const image = req.body.image
     const resp = await insertFile(image)
     //res.send({cid: resp.path.cid.toString()})
     const cipherId = await CryptoJS.AES.encrypt(resp.path.cid.toString(), key).toString()
-    res.json({cid: cipherId.replace(/\+/g, 'xMl3Jk').replace(/\//g,'Por21Ld').replace(/=/g,'Ml32')})
+    const id = await makeid(8)
+    const dbresp = await firebase.database().ref(id).set({
+        cid: cipherId
+    })
+    res.json({rid: id})
 })
 
 app.get('/photo/:id', async(req, res) => {
     const key = config.libp2pkey
-    const id = req.params.id
-    const bytes = await CryptoJS.AES.decrypt(id.replace(/\+/g, 'xMl3Jk').replace(/\//g,'Por21Ld').replace(/=/g,'Ml32'), key)
+    const rid = req.params.id
+    const cid = await firebase.database().ref(rid).once('value').then(snapshot => {
+        const details = snapshot.val()
+        return details.cid
+    })
+    const bytes = await CryptoJS.AES.decrypt(cid, key)
     const originalText = await bytes.toString(CryptoJS.enc.Utf8)
     const url = 'https://'+originalText+'.ipfs.hub.textile.io'
-    console.log(url)
     const resp = await axios.get(url).catch((err: any) => {res.send('error')})
     res.render('display.ejs', {img: resp.data});
 })
 
-app.listen(process.env.PORT || 3000, function () {
-    console.log('Server running!');
+app.listen(3000, function () {
+    console.log('Example app listening on port 3000!');
   });
 

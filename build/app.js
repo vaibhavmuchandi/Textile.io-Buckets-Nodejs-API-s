@@ -1,4 +1,23 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -38,6 +57,10 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 ;
 global.WebSocket = require('isomorphic-ws');
+var firebase = __importStar(require("firebase/app"));
+require("firebase/auth");
+require("firebase/firestore");
+require("firebase/database");
 var hub_1 = require("@textile/hub");
 var threads_core_1 = require("@textile/threads-core");
 var express = require("express");
@@ -50,6 +73,16 @@ var config = require('../config.js');
 // Create a new express application instance
 var app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
+var firebaseConfig = {
+    apiKey: config.firebaseAPI,
+    authDomain: config.firebaseauthDomain,
+    databaseURL: config.firebaseDbUrl,
+    projectId: config.firebaseProjectId,
+    storageBucket: config.firebaseStorageBucket,
+    messagingSenderId: config.firebasemsgId,
+    appId: config.firebaseAppId
+};
+firebase.initializeApp(firebaseConfig);
 // const identity = async() => {
 //     const lidentity = await Libp2pCryptoIdentity.fromRandom()
 //     console.log(lidentity.toString())
@@ -141,7 +174,21 @@ var insertFile = function (file) { return __awaiter(void 0, void 0, void 0, func
     });
 }); };
 app.post('/post', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var key, image, resp, cipherId;
+    function makeid(length) {
+        return __awaiter(this, void 0, void 0, function () {
+            var result, characters, charactersLength, i;
+            return __generator(this, function (_a) {
+                result = '';
+                characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                charactersLength = characters.length;
+                for (i = 0; i < length; i++) {
+                    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+                }
+                return [2 /*return*/, result];
+            });
+        });
+    }
+    var key, image, resp, cipherId, id, dbresp;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -155,34 +202,48 @@ app.post('/post', function (req, res) { return __awaiter(void 0, void 0, void 0,
                 return [4 /*yield*/, CryptoJS.AES.encrypt(resp.path.cid.toString(), key).toString()];
             case 2:
                 cipherId = _a.sent();
-                res.json({ cid: cipherId.replace(/\+/g, 'xMl3Jk').replace(/\//g, 'Por21Ld').replace(/=/g, 'Ml32') });
+                return [4 /*yield*/, makeid(8)];
+            case 3:
+                id = _a.sent();
+                return [4 /*yield*/, firebase.database().ref(id).set({
+                        cid: cipherId
+                    })];
+            case 4:
+                dbresp = _a.sent();
+                res.json({ rid: id });
                 return [2 /*return*/];
         }
     });
 }); });
 app.get('/photo/:id', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var key, id, bytes, originalText, url, resp;
+    var key, rid, cid, bytes, originalText, url, resp;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 key = config.libp2pkey;
-                id = req.params.id;
-                return [4 /*yield*/, CryptoJS.AES.decrypt(id.replace(/\+/g, 'xMl3Jk').replace(/\//g, 'Por21Ld').replace(/=/g, 'Ml32'), key)];
+                rid = req.params.id;
+                return [4 /*yield*/, firebase.database().ref(rid).once('value').then(function (snapshot) {
+                        var details = snapshot.val();
+                        return details.cid;
+                    })];
             case 1:
+                cid = _a.sent();
+                return [4 /*yield*/, CryptoJS.AES.decrypt(cid, key)];
+            case 2:
                 bytes = _a.sent();
                 return [4 /*yield*/, bytes.toString(CryptoJS.enc.Utf8)];
-            case 2:
+            case 3:
                 originalText = _a.sent();
                 url = 'https://' + originalText + '.ipfs.hub.textile.io';
                 console.log(url);
                 return [4 /*yield*/, axios.get(url).catch(function (err) { res.send('error'); })];
-            case 3:
+            case 4:
                 resp = _a.sent();
                 res.render('display.ejs', { img: resp.data });
                 return [2 /*return*/];
         }
     });
 }); });
-app.listen(process.env.PORT || 3000, function () {
-    console.log('Server running!');
+app.listen(3000, function () {
+    console.log('Example app listening on port 3000!');
 });
