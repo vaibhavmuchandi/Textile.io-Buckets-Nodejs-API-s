@@ -72,7 +72,7 @@ var bodyParser = require('body-parser');
 var config = require('../config.js');
 // Create a new express application instance
 var app = express();
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 var firebaseConfig = {
     apiKey: config.firebaseAPI,
     authDomain: config.firebaseauthDomain,

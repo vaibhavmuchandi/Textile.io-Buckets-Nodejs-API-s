@@ -16,7 +16,7 @@ const config = require('../config.js');
 
 // Create a new express application instance
 const app: express.Application = express();
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.urlencoded({limit: '50mb',extended: true}));
 
 const firebaseConfig = {
     apiKey: config.firebaseAPI,
