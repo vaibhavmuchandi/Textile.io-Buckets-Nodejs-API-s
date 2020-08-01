@@ -193,7 +193,7 @@ app.post('/post', function (req, res) { return __awaiter(void 0, void 0, void 0,
         switch (_a.label) {
             case 0:
                 key = config.libp2pkey;
-                image = req.body.image;
+                image = req.body.image.toString();
                 return [4 /*yield*/, insertFile(image)
                     //res.send({cid: resp.path.cid.toString()})
                 ];
