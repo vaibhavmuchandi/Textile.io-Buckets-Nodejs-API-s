@@ -110,7 +110,7 @@ app.post('/post', async(req, res) => {
         return result;
      }
     const key = config.libp2pkey
-    const image = req.body.image
+    const image = req.body.image.toString()
     const resp = await insertFile(image)
     //res.send({cid: resp.path.cid.toString()})
     const cipherId = await CryptoJS.AES.encrypt(resp.path.cid.toString(), key).toString()
