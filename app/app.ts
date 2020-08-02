@@ -10,13 +10,14 @@ const multer  = require('multer');
 const axios = require('axios')
 const CryptoJS = require('crypto-js')
 const upload = multer({ dest: 'uploads/' });
-const bodyParser = require('body-parser');
+import * as bodyParser from 'body-parser'
 const config = require('../config.js');
 
 
 // Create a new express application instance
 const app: express.Application = express();
 app.use(bodyParser.urlencoded({limit: '50mb',extended: true}));
+
 
 const firebaseConfig = {
     apiKey: config.firebaseAPI,
@@ -98,8 +99,13 @@ const insertFile = async (file: any) : Promise<PushPathResult> => {
       })
 }
 
+app.get('/post', async(req, res) => {
+  res.render('home.ejs')
+})
 
 app.post('/post', async(req, res) => {
+    const key = config.libp2pkey
+    const image = await req.body.img
     async function makeid(length: any) {
         var result           = '';
         var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -109,17 +115,16 @@ app.post('/post', async(req, res) => {
         }
         return result;
      }
-    const key = config.libp2pkey
-    const image = req.body.image.toString()
     const resp = await insertFile(image)
     //res.send({cid: resp.path.cid.toString()})
     const cipherId = await CryptoJS.AES.encrypt(resp.path.cid.toString(), key).toString()
     const id = await makeid(8)
     const dbresp = await firebase.database().ref(id).set({
-        cid: cipherId
+        cid: resp.path.cid.toString()
     })
-    res.json({rid: id})
+    res.send({rid: id})
 })
+
 
 app.get('/photo/:id', async(req, res) => {
     const key = config.libp2pkey
@@ -130,12 +135,13 @@ app.get('/photo/:id', async(req, res) => {
     })
     const bytes = await CryptoJS.AES.decrypt(cid, key)
     const originalText = await bytes.toString(CryptoJS.enc.Utf8)
-    const url = 'https://'+originalText+'.ipfs.hub.textile.io'
+    const url = 'https://'+cid+'.ipfs.hub.textile.io'
     const resp = await axios.get(url).catch((err: any) => {res.send('error')})
-    res.render('display.ejs', {img: resp.data});
+    console.log(resp)
+    res.render('display.ejs', {img: resp});
 })
 
-app.listen(process.env.PORT || 3000, function () {
+app.listen(3000, function () {
     console.log('Example app listening on port 3000!');
   });
 

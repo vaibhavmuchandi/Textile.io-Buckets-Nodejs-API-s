@@ -68,7 +68,7 @@ var multer = require('multer');
 var axios = require('axios');
 var CryptoJS = require('crypto-js');
 var upload = multer({ dest: 'uploads/' });
-var bodyParser = require('body-parser');
+var bodyParser = __importStar(require("body-parser"));
 var config = require('../config.js');
 // Create a new express application instance
 var app = express();
@@ -173,6 +173,12 @@ var insertFile = function (file) { return __awaiter(void 0, void 0, void 0, func
         }
     });
 }); };
+app.get('/post', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    return __generator(this, function (_a) {
+        res.render('home.ejs');
+        return [2 /*return*/];
+    });
+}); });
 app.post('/post', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     function makeid(length) {
         return __awaiter(this, void 0, void 0, function () {
@@ -193,24 +199,26 @@ app.post('/post', function (req, res) { return __awaiter(void 0, void 0, void 0,
         switch (_a.label) {
             case 0:
                 key = config.libp2pkey;
-                image = req.body.image.toString();
+                return [4 /*yield*/, req.body.img];
+            case 1:
+                image = _a.sent();
                 return [4 /*yield*/, insertFile(image)
                     //res.send({cid: resp.path.cid.toString()})
                 ];
-            case 1:
+            case 2:
                 resp = _a.sent();
                 return [4 /*yield*/, CryptoJS.AES.encrypt(resp.path.cid.toString(), key).toString()];
-            case 2:
+            case 3:
                 cipherId = _a.sent();
                 return [4 /*yield*/, makeid(8)];
-            case 3:
+            case 4:
                 id = _a.sent();
                 return [4 /*yield*/, firebase.database().ref(id).set({
-                        cid: cipherId
+                        cid: resp.path.cid.toString()
                     })];
-            case 4:
+            case 5:
                 dbresp = _a.sent();
-                res.json({ rid: id });
+                res.send({ rid: id });
                 return [2 /*return*/];
         }
     });
@@ -234,15 +242,16 @@ app.get('/photo/:id', function (req, res) { return __awaiter(void 0, void 0, voi
                 return [4 /*yield*/, bytes.toString(CryptoJS.enc.Utf8)];
             case 3:
                 originalText = _a.sent();
-                url = 'https://' + originalText + '.ipfs.hub.textile.io';
+                url = 'https://' + cid + '.ipfs.hub.textile.io';
                 return [4 /*yield*/, axios.get(url).catch(function (err) { res.send('error'); })];
             case 4:
                 resp = _a.sent();
-                res.render('display.ejs', { img: resp.data });
+                console.log(resp);
+                res.render('display.ejs', { img: resp });
                 return [2 /*return*/];
         }
     });
 }); });
-app.listen(process.env.PORT || 3000, function () {
+app.listen(3000, function () {
     console.log('Example app listening on port 3000!');
 });
