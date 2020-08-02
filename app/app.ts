@@ -17,6 +17,7 @@ const config = require('../config.js');
 // Create a new express application instance
 const app: express.Application = express();
 app.use(bodyParser.urlencoded({limit: '50mb',extended: true}));
+app.use(express.urlencoded({ extended: false }));
 
 
 const firebaseConfig = {
@@ -141,7 +142,7 @@ app.get('/photo/:id', async(req, res) => {
     res.render('display.ejs', {img: resp});
 })
 
-app.listen(process.env.PORT || 3000, function () {
+app.listen(process.env.PORT || 5000, function () {
     console.log('Example app listening on port 3000!');
   });
 
